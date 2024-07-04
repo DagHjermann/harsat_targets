@@ -93,6 +93,9 @@ get_assessment_data <- function(
   
 }  
 
+#
+# Original version of 'read_data', here only for reference and copy/paste (and renamed 'read_data_orig' so it's not actually used)
+#
 
 read_data_orig <- function (compartment = c("biota", "sediment", "water"), purpose = c("OSPAR", 
                                                                                    "HELCOM", "AMAP", "custom"), contaminants, stations, data_dir = ".", 
@@ -229,7 +232,7 @@ get_info_object <- function (compartment = c("biota", "sediment", "water"), purp
 # Also:
 # - added 'harsat:::' in front of 'control_default', 'control_modify', and 'read_info'
 
-read_data2 <- function (compartment = c("biota", "sediment", "water"), 
+read_data_tar <- function (compartment = c("biota", "sediment", "water"), 
                         purpose = c("OSPAR", "HELCOM", "AMAP", "custom"), 
                         contaminants,   # file name
                         data_dir = ".", 
@@ -238,6 +241,7 @@ read_data2 <- function (compartment = c("biota", "sediment", "water"),
                         info_dir = ".", 
                         filename_info,
                         filename_stations,
+                        filename_contaminants,
                         extraction = NULL, 
                         max_year = NULL, 
                         oddity_dir = "oddities", 
@@ -287,11 +291,27 @@ read_data2 <- function (compartment = c("biota", "sediment", "water"),
   info <- append(info, cntrl)
   # info <- read_info(info, info_dir, info_files)
   info <- readRDS(filename_info)
-  stations <- read_stations2(filename_stations, info)
-  list(info=info, stations=stations)
+  stations <- read_stations_tar(filename_stations, info)
+  data <- read_contaminants_tar(filename_contaminants, info)
+  if (data_format == "ICES") {
+    data <- harsat:::add_stations(data, stations, info)
+    stations <- harsat:::finalise_stations(stations, info)
+    data <- harsat:::finalise_data(data, info)
+  }
+  if (is.null(info$max_year)) {
+    info$max_year <- max(data$year)
+    cat("\nArgument max_year taken to be the maximum year in the data:", 
+        info$max_year, "\n")
+  }
+  info$recent_years <- seq(info$max_year - info$reporting_window + 
+                             1, info$max_year)
+  out <- list(call = match.call(), info = info, data = data, 
+              stations = stations)
+  # list(info=info, stations=stations, data = data)
+  out
 }
 
-# read_data2 <- function (filename_info) {
+# read_data_tar <- function (filename_info) {
 #   info <- readRDS(filename_info)
 #   info
 # }
@@ -300,7 +320,7 @@ read_data2 <- function (compartment = c("biota", "sediment", "water"),
 # the first line "infile <- file.path(data_dir, file)" commented out
 # - added "harsat:::" in front of report_file_digest, safe_read_file
 
-read_stations2 <- function (infile, info) {
+read_stations_tar <- function (infile, info) {
   #  infile <- file.path(data_dir, file)
   cat("Reading station dictionary from:\n '", infile, "'\n", 
       sep = "")
@@ -365,7 +385,7 @@ read_stations2 <- function (infile, info) {
 }
 
 
-read_contaminants2 <- function (infile, info){
+read_contaminants_tar <- function (infile, info){
   .data <- NULL
   # infile <- file.path(data_dir, file)
   cat("\nReading contaminant and effects data from:\n '", infile, 
@@ -452,7 +472,7 @@ read_contaminants2 <- function (infile, info){
            "Variables: ", paste(id, collapse = ", "))
     }
     ok <- names(var_id) %in% names(data)
-    data <- safe_read_file(infile, na.strings = c("", "NULL"), 
+    data <- harsat:::safe_read_file(infile, na.strings = c("", "NULL"), 
                            strip.white = TRUE, colClasses = var_id[ok])
   }
   if (info$data_format == "external") {

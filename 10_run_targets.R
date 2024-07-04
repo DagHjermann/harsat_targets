@@ -32,6 +32,7 @@ if (FALSE){
 
 # debugonce(read_stations2)
 # test <- read_stations2(infile = "harsat_data/ICES_DOME_STATIONS_20230829_NO.csv", info)
+# test <- read_contaminants2(infile = "harsat_data/raw_data_sample.csv", 
 
 
 
