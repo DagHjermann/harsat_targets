@@ -9,6 +9,7 @@ library(targets)
 library(harsat)
 
 source("R/functions.R")
+source("R/functions_utility.R")
 
 
 if (FALSE){
