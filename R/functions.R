@@ -386,3 +386,11 @@ read_contaminants_tar <- function (infile, info){
   data
 }
 
+tidy_data2 <- function(data){
+  if ("country" %in% names(data$data))
+    data$data$country <- NULL
+  if ("station_name" %in% names(data$data))
+    data$data$station_name <- NULL
+  data
+}
+
