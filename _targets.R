@@ -22,8 +22,7 @@ list(
       filename_info = file_info,
       filename_stations = file_stations,
       filename_contaminants = file_contaminants
-      )
-  ),
+      )),
   tar_target(biota_data_tidy1, tidy_data(biota_data)),
   tar_target(biota_data_tidy2, tidy_data2(biota_data_tidy1)),
   tar_target(
@@ -38,6 +37,18 @@ list(
       get_basis = get_basis_most_common,
       normalise = FALSE,
       normalise.control = list()
+    )),
+  tar_target(
+    biota_assessment,
+    run_assessment(
+      biota_timeseries,
+      # subset = sel_series,
+      AC = NULL,
+      get_AC_fn = NULL,
+      recent_trend = 20,
+      parallel = FALSE, 
+      extra_data = NULL,
+      control = list(power = list(target_power = 80, target_trend = 10)) 
     ))
 )
 
