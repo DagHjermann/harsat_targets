@@ -1,4 +1,5 @@
 
+
 get_assessment_data <- function(
     assessment_obj, 
     subset = NULL) {
@@ -92,6 +93,7 @@ get_assessment_data <- function(
   result 
   
 }  
+
 #
 # read_data() adapted for used with targets 
 #
@@ -394,14 +396,15 @@ tidy_data2 <- function(data){
   data
 }
 
+
 # Function for splitting a timeseries object into a list 
 # with one object per determinand
 
 split_timeseries_object <- function(object){
-  # split time series in list
+  # split time series into a list
   timeSeries_list <- split(object$timeSeries, object$timeSeries$determinand)
   determs <- names(timeSeries_list)
-  # split data in list
+  # split data into a list
   data_list <- lapply(determs, function(determ) { subset(object$data, determinand %in% determ) })
   # define result as a list with one element per determinand
   result <- vector(mode = "list", length = length(determs))

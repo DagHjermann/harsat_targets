@@ -225,5 +225,25 @@ if (FALSE){
     plot_points = "all", logscale = FALSE, ylim = c(0,17))
 }
 
+# split "info" object so we reduce the amount of data in each object (which is copied N times)
+# But see bottom of _targets.R for better solution (using a common info file)  
+
+split_info_object <- function(object, determs){
+  info_determinand_list <- lapply(determs, 
+                                  function(determ) object$determinand[rownames(x$info$determinand) %in% determ,])
+  info_thresholds_list <- lapply(determs, 
+                                 function(determ) subset(object$thresholds, determinand %in% determ))
+  # define result as a list with one element per determinand
+  result <- vector(mode = "list", length = length(determs))
+  names(result) <- determs
+  # define each list item
+  for (i in seq_along(result)){
+    result[[i]] <- object
+    result[[i]]$determinand <- info_determinand_list[[i]]
+    result[[i]]$thresholds <- info_thresholds_list[[i]]
+  }
+  result
+}
+
 
 

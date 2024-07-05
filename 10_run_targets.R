@@ -43,64 +43,24 @@ tar_manifest()
 tar_visnetwork()
 tar_make()
 
-x <- tar_read(biota_data)
-str(x, 1)
+# test results using 'ggplot_assessment'  
+x <- tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]])
+ggplot_assessment(x)
+ggplot_assessment(x, plot_points = "all")
+ggplot_assessment(x, plot_points = "annual", logscale = FALSE)
+ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
 
-object <- tar_read(biota_timeseries)
-str(object, 1)
-rm(object)
-
-
-split_timeseries_object <- function(object){
-  # split time series in list
-  timeSeries_list <- split(object$timeSeries, object$timeSeries$determinand)
-  determs <- names(timeSeries_list)
-  # split data in list
-  data_list <- lapply(determs, function(determ) { subset(object$data, determinand %in% determ) })
-  # define result as a list with one element per determinand
-  result <- vector(mode = "list", length = length(determs))
-  names(result) <- determs
-  # define each list item
-  for (i in seq_along(result)){
-    result[[i]] <- list(
-      call = object$call,
-      call.data = object$call.data,
-      info = object$info,
-      data = data_list[[i]],
-      timeSeries = timeSeries_list[[i]]
-    )
-  }
-  result
-}
-
-x <- tar_read(biota_timeseries)
-biota_timeseries_list <- split_timeseries_object(x)
-str(biota_timeseries_list, 1)
-str(biota_timeseries_list, 2)
-
-
-
-# time series
-timeseries_list <- split(x$timeSeries, x$timeSeries$determinand)
-determs <- names(timeseries_list)
-
-# data
-data_list <- lapply(determs, function(determ) { subset(x$data, determinand %in% determ) })
-str(data_list, 1)
-# Check
-lapply(data_list, function(df) { table(df$determinand)} )
 
 #
-# info
+# info file
 #
+
+# test 'split_info_object'  
+# split "info" object in a way so we reduce the amount of data in each object (which is copied N times)
+# But see bottom of _targets.R for better solution (using a common info file)  
+
+
+x <- tar_read(biota_timeseries_PFOS)
 str(x$info, 1)
-str(x$info$determinand, 1)
-info_determinand_list <- lapply(determs, 
-                                function(determ) x$info$determinand[rownames(x$info$determinand) %in% determ,])
-str(info_determinand_list, 1)
-str(x$info$thresholds, 1)
-info_thresholds_list <- lapply(determs, 
-                                function(determ) subset(x$info$thresholds, determinand %in% determ))
-str(info_thresholds_list, 1)
-
-
+str(split_info_object(x$info, c("CD", "PFOS")), 1)
+str(split_info_object(x$info, c("CD", "PFOS"))[[1]], 1)

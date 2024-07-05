@@ -5,6 +5,9 @@ library(tibble)
 source("R/functions.R")
 tar_option_set(packages = c("harsat"))
 
+# Todo / improvements, see bottom:
+
+
 list(
   tar_target(file_info, "harsat_data/info.rds", format = "file"),
   tar_target(file_stations, "harsat_data/ICES_DOME_STATIONS_20230829_NO.csv", format = "file"),
@@ -59,3 +62,34 @@ list(
     )
 )
 
+# Todo / improvement:
+# Now 'biota_timeseries_list' and all 'biota_timeseries' contains each one copy of
+#   'info', including all data  
+# Could instead have one common 'info' object that is used by 'run_assessment'  
+# Would probably need to rewrite 'run_assessment', replacing 'ctsm_ob$info'
+#   with an externally given object
+# 
+# Ie, replace:
+#
+# tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
+# tar_map(
+#   list(determinand = c("CD", "PFOS")),
+#   tar_target(biota_timeseries, biota_timeseries_list[[determinand]]),
+#   tar_target(
+#     biota_assessment,
+#     run_assessment(
+#       biota_timeseries,
+#
+# with
+#
+# tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
+# tar_target(info, get_info_object(biota_timeseries_all)),                           <===== NEW
+# tar_map(
+#   list(determinand = c("CD", "PFOS")),
+#   tar_target(biota_timeseries, biota_timeseries_list[[determinand]]),
+#   tar_target(
+#     biota_assessment,           
+#     run_assessment_tar(         <===== modified version of 'biota_assessment' 
+#       biota_timeseries,
+#       info,                     <===== NEW
+#
