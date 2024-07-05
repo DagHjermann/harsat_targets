@@ -394,3 +394,52 @@ tidy_data2 <- function(data){
   data
 }
 
+# Function for splitting a timeseries object into a list 
+# with one object per determinand
+
+split_timeseries_object <- function(object){
+  # split time series in list
+  timeSeries_list <- split(object$timeSeries, object$timeSeries$determinand)
+  determs <- names(timeSeries_list)
+  # split data in list
+  data_list <- lapply(determs, function(determ) { subset(object$data, determinand %in% determ) })
+  # define result as a list with one element per determinand
+  result <- vector(mode = "list", length = length(determs))
+  names(result) <- determs
+  # define each list item
+  for (i in seq_along(result)){
+    result[[i]] <- list(
+      call = object$call,
+      call.data = object$call.data,
+      info = object$info,
+      data = data_list[[i]],
+      # data = object$data,
+      stations = object$stations,
+      timeSeries = timeSeries_list[[i]]
+    )
+  }
+  result
+}
+
+if (FALSE){
+  # for test
+  x <- tar_read(biota_timeseries)
+  biota_timeseries_list <- split_timeseries_object(x)
+  str(biota_timeseries_list, 1)
+  # Compare the two next - they should be of identical structure:
+  str(biota_timeseries_list[[1]], 1)
+  str(x, 1)
+  # Test that 'run_assessment' can use each list object
+  i <- 1
+  biota_assessment_test <- harsat::run_assessment(
+    biota_timeseries_list[[i]],
+    AC = NULL,
+    get_AC_fn = NULL,
+    recent_trend = 20,
+    parallel = FALSE, 
+    extra_data = NULL,
+    control = list(power = list(target_power = 80, target_trend = 10)) 
+  )
+}
+
+
