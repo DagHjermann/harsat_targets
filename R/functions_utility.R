@@ -137,3 +137,93 @@ get_info_object <- function (compartment = c("biota", "sediment", "water"), purp
   info <- harsat:::read_info(info, info_dir, info_files)
   info
 }
+
+# debugonce(ggplot_assessment)
+ggplot_assessment <- function(assessment_data,
+                              plot_points = "annual",
+                              logscale = TRUE,
+                              pointcolor = "darkred",
+                              pointshapes = c(19, 6),
+                              trendcolor_line = "darkblue",
+                              trendcolor_fill = "lightblue",
+                              trendwidth = 0.8,
+                              ylim = NULL){
+  if (!is.na(plot_points)){
+    if (plot_points == "all"){
+      pointdata <- assessment_data$assessment$fullData
+      pointdata$y = pointdata$concentration
+      pointdata$LOQ = ifelse(pointdata$censoring %in% "Q", "Under LOQ", "Over LOQ")
+    } else if (plot_points == "annual"){
+      pointdata <- assessment_data$assessment$annualIndex
+      pointdata$y = exp(pointdata$index)
+      pointdata$LOQ = ifelse(pointdata$censoring %in% "Q", "Under LOQ", "Over LOQ")
+    } else {
+      warning(
+        "plot_points = 'all': plot all concentrations\n",
+        "plot_points = 'annual': plot annual index",
+        "plot_points = NA: plot trend only"
+      )
+    }
+  } else {
+    pointdata <- NULL
+  }
+  if (!is.null(pointdata)){
+    gg <- ggplot(pointdata, aes(year)) +
+      geom_ribbon(
+        data = assessment_data$assessment$pred, 
+        aes(ymin = exp(ci.lower), ymax = exp(ci.upper)),  # note; hard-coded exp
+        fill = trendcolor_fill) + 
+      geom_path(
+        data = assessment_data$assessment$pred, 
+        aes(y = exp(fit)),
+        color = trendcolor_line,
+        size = rel(trendwidth)) + 
+      geom_point(
+        aes(y = y, shape = LOQ),
+        color = pointcolor) +
+      scale_shape_manual(
+        values = c("Over LOQ" = pointshapes[1], "Under LOQ" = pointshapes[2]))
+  } else {
+    gg <- ggplot(assessment_data$assessment$pred, aes(year)) +
+      geom_ribbon(
+        aes(ymin = exp(ci.lower), ymax = exp(ci.upper)),  # note; hard-coded exp
+        fill = trendcolor_fill) + 
+      geom_path(
+        aes(y = exp(fit)),
+        color = trendcolor_line,
+        size = rel(trendwidth))
+  }
+  gg <- gg  +
+    labs(
+      title = assessment_data$output_id,
+      y = "Concentration / index") 
+  if (!is.null(ylim)){
+    if (!(is.numeric(ylim) & length(ylim) == 2)){
+      stop("ylim must be a vector of two numbers, e.g., 'c(0,10)'")
+    }
+  }
+  if (logscale){
+    gg <- gg + scale_y_log10(limits = ylim)
+  } else {
+    gg <- gg + scale_y_continuous(limits = ylim)
+  }
+  gg
+}
+
+if (FALSE){
+  # testing
+  ggplot_assessment(
+    tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]])
+  ggplot_assessment(
+    tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]],
+    plot_points = "all")
+  ggplot_assessment(
+    tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]], 
+    plot_points = "annual", logscale = FALSE)
+  ggplot_assessment(
+    tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]], 
+    plot_points = "all", logscale = FALSE, ylim = c(0,17))
+}
+
+
+
