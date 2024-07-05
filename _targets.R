@@ -39,16 +39,23 @@ list(
       normalise.control = list()
     )),
   tar_target(
-    biota_assessment,
-    run_assessment(
-      biota_timeseries,
-      # subset = sel_series,
-      AC = NULL,
-      get_AC_fn = NULL,
-      recent_trend = 20,
-      parallel = FALSE, 
-      extra_data = NULL,
-      control = list(power = list(target_power = 80, target_trend = 10)) 
-    ))
+    biota_timeseries_list, split_timeseries_object(biota_timeseries)),
+  tar_map(
+    list(determinand = "CD", "PFOS"),
+    tar_target(biota_timeseries, biota_timeseries_list[[determinand]]), 
+    tar_target(
+      biota_assessment,
+      run_assessment(
+        biota_timeseries,
+        # subset = sel_series,
+        AC = NULL,
+        get_AC_fn = NULL,
+        recent_trend = 20,
+        parallel = FALSE, 
+        extra_data = NULL,
+        control = list(power = list(target_power = 80, target_trend = 10))
+      )
+    )
+  )
 )
 

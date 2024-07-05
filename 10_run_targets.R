@@ -6,7 +6,7 @@
 
 
 library(targets)
-library(harsat)
+# library(harsat)
 
 source("R/functions.R")
 source("R/functions_utility.R")
@@ -45,3 +45,62 @@ tar_make()
 
 x <- tar_read(biota_data)
 str(x, 1)
+
+object <- tar_read(biota_timeseries)
+str(object, 1)
+rm(object)
+
+
+split_timeseries_object <- function(object){
+  # split time series in list
+  timeSeries_list <- split(object$timeSeries, object$timeSeries$determinand)
+  determs <- names(timeSeries_list)
+  # split data in list
+  data_list <- lapply(determs, function(determ) { subset(object$data, determinand %in% determ) })
+  # define result as a list with one element per determinand
+  result <- vector(mode = "list", length = length(determs))
+  names(result) <- determs
+  # define each list item
+  for (i in seq_along(result)){
+    result[[i]] <- list(
+      call = object$call,
+      call.data = object$call.data,
+      info = object$info,
+      data = data_list[[i]],
+      timeSeries = timeSeries_list[[i]]
+    )
+  }
+  result
+}
+
+x <- tar_read(biota_timeseries)
+biota_timeseries_list <- split_timeseries_object(x)
+str(biota_timeseries_list, 1)
+str(biota_timeseries_list, 2)
+
+
+
+# time series
+timeseries_list <- split(x$timeSeries, x$timeSeries$determinand)
+determs <- names(timeseries_list)
+
+# data
+data_list <- lapply(determs, function(determ) { subset(x$data, determinand %in% determ) })
+str(data_list, 1)
+# Check
+lapply(data_list, function(df) { table(df$determinand)} )
+
+#
+# info
+#
+str(x$info, 1)
+str(x$info$determinand, 1)
+info_determinand_list <- lapply(determs, 
+                                function(determ) x$info$determinand[rownames(x$info$determinand) %in% determ,])
+str(info_determinand_list, 1)
+str(x$info$thresholds, 1)
+info_thresholds_list <- lapply(determs, 
+                                function(determ) subset(x$info$thresholds, determinand %in% determ))
+str(info_thresholds_list, 1)
+
+
