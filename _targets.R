@@ -26,7 +26,7 @@ list(
   tar_target(biota_data_tidy1, tidy_data(biota_data)),
   tar_target(biota_data_tidy2, tidy_data2(biota_data_tidy1)),
   tar_target(
-    biota_timeseries, 
+    biota_timeseries_all, 
     create_timeseries(
       biota_data_tidy2,
       determinands = ctsm_get_determinands(biota_data_tidy2$info),
@@ -38,11 +38,10 @@ list(
       normalise = FALSE,
       normalise.control = list()
     )),
-  tar_target(
-    biota_timeseries_list, split_timeseries_object(biota_timeseries)),
+  tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
   tar_map(
-    list(determinand = "CD", "PFOS"),
-    tar_target(biota_timeseries, biota_timeseries_list[[determinand]]), 
+    list(determinand = c("CD", "PFOS")),
+    tar_target(biota_timeseries, biota_timeseries_list[[determinand]]),
     tar_target(
       biota_assessment,
       run_assessment(
@@ -53,9 +52,8 @@ list(
         recent_trend = 20,
         parallel = FALSE, 
         extra_data = NULL,
-        control = list(power = list(target_power = 80, target_trend = 10))
-      )
+        control = list(power = list(target_power = 80, target_trend = 10)) 
+      ))
     )
-  )
 )
 
