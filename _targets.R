@@ -53,7 +53,9 @@ list(
         parallel = FALSE, 
         extra_data = NULL,
         control = list(power = list(target_power = 80, target_trend = 10)) 
-      ))
+      )),
+    tar_target(
+      biota_assess_data, get_assessment_data(biota_assessment))
     )
 )
 
