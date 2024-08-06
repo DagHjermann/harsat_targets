@@ -42,13 +42,15 @@ list(
       normalise.control = list()
     )),
   tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
+  tar_target(info, biota_timeseries_all[["info"]]),
   tar_map(
     list(determinand = c("CD", "PFOS")),
     tar_target(biota_timeseries, biota_timeseries_list[[determinand]]),
     tar_target(
       biota_assessment,
-      run_assessment(
+      run_assessment_tar(
         biota_timeseries,
+        info = info,
         # subset = sel_series,
         AC = NULL,
         get_AC_fn = NULL,
