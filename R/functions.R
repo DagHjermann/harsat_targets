@@ -445,4 +445,59 @@ if (FALSE){
   )
 }
 
+#
+# run_assessment_tar
+# - a copy of run_assessment() from harsat
+#
+
+run_assessment_tar <- function (ctsm_ob, subset = NULL, AC = NULL, get_AC_fn = NULL, 
+          recent_trend = 20L, parallel = FALSE, extra_data = NULL, 
+          control = list(), ...) 
+{
+  ctsm_ob$call <- match.call()
+  ctsm_ob$info$recent.trend <- recent_trend
+  ctsm_ob$info$AC <- AC
+  ctsm_ob$info$get_AC_fn <- get_AC_fn
+  if (!is.null(AC) && is.null(ctsm_ob$info$get_AC_fn)) {
+    ctsm_ob$info$get_AC_fn <- get_AC[[ctsm_ob$info$compartment]]
+  }
+  if (any(ctsm_ob$data$group %in% "Imposex")) {
+    if (is.null(extra_data)) {
+      stop("`extra_data` must be supplied for imposex assessments")
+    }
+    ok <- c("VDS_estimates", "VDS_confidence_limits") %in% 
+      names(extra_data)
+    if (!all(ok)) {
+      stop("argument extra_data must be a list with components ", 
+           "VDS_estimates and VDS_confidence_limits")
+    }
+  }
+  ctsm_ob$info$extra_data <- extra_data
+  cntrl <- run_control_default()
+  cntrl <- run_control_modify(cntrl, control)
+  if (any(names(cntrl) %in% names(ctsm_ob$info))) {
+    id <- names(cntrl)
+    id <- id[id %in% names(ctsm_ob$info)]
+    warning("\n conflict between components of ctsm_ob$info and control parameters ", 
+            "- results may be unexpected:\n ", paste(id, collapse = ", "), 
+            "\n", call. = FALSE, immediate. = TRUE)
+  }
+  ctsm_ob$info <- append(ctsm_ob$info, cntrl)
+  ctsm_ob$assessment <- vector(mode = "list", length = nrow(ctsm_ob$timeSeries))
+  names(ctsm_ob$assessment) <- row.names(ctsm_ob$timeSeries)
+  ctsm_ob$call.data <- NULL
+  series_id <- row.names(ctsm_ob$timeSeries)
+  if (!is.null(substitute(subset))) {
+    timeSeries <- tibble::rownames_to_column(ctsm_ob$timeSeries, 
+                                             "series")
+    ok <- eval(substitute(subset), timeSeries, parent.frame())
+    series_id <- timeSeries[ok, "series"]
+  }
+  out <- assessment_engine(ctsm_ob, series_id, parallel = parallel, 
+                           ...)
+  ctsm_ob$assessment[names(out)] <- out
+  ctsm_ob
+}
+
+
 

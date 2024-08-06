@@ -50,6 +50,25 @@ ggplot_assessment(x, plot_points = "all")
 ggplot_assessment(x, plot_points = "annual", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
 
+# test doing assessment of one part of data using intermediate results
+obj_ts_list <- tar_read(biota_timeseries_list)
+names(obj_ts_list)
+obj_ts <- obj_ts_list[["CD"]]
+# library(harsat)
+source("R/functions.R")
+obj_ass <- run_assessment_tar(
+  obj_ts, # biota_timeseries
+  # subset = sel_series,
+  AC = NULL,
+  get_AC_fn = NULL,
+  recent_trend = 20,
+  parallel = FALSE, 
+  extra_data = NULL,
+  control = list(power = list(target_power = 80, target_trend = 10))
+)
+  
+
+
 
 #
 # info file
