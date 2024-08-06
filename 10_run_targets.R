@@ -55,11 +55,18 @@ tar_manifest()
 tar_visnetwork()
 tar_make()
 
-# test results using 'ggplot_assessment'  
-x <- tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]])
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# Test results of pipeline using using 'ggplot_assessment' ----  
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+x <- tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]]
+library(ggplot2)
 ggplot_assessment(x)
 ggplot_assessment(x, plot_points = "all")
 ggplot_assessment(x, plot_points = "annual", logscale = FALSE)
+ggplot_assessment(x, plot_points = "all", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
 
 
