@@ -64,14 +64,14 @@ list(
     )
 )
 
-# Todo / improvement:
-# Now 'biota_timeseries_list' and all 'biota_timeseries' contains each one copy of
+# Improvement done:
+# Originally, 'biota_timeseries_list' and all 'biota_timeseries' contained each one copy of
 #   'info', including all data  
-# Could instead have one common 'info' object that is used by 'run_assessment'  
-# Would probably need to rewrite 'run_assessment', replacing 'ctsm_ob$info'
-#   with an externally given object
+# I changed this to instead use one common 'info' object that is used by 'run_assessment'  
+# This was done by fetching 'info' from the 'biota_timeseries_all', object, and then rewrite 'run_assessment', 
+#   so 'info' is an argument (an input), and then add a line setting 'ctsm_ob$info' to be the input 'info'  
 # 
-# Ie, replace:
+# Ie, we replaced:
 #
 # tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
 # tar_map(
@@ -85,7 +85,7 @@ list(
 # with
 #
 # tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
-# tar_target(info, get_info_object(biota_timeseries_all)),                           <===== NEW
+# tar_target(info, biota_timeseries_all[["info"]]),
 # tar_map(
 #   list(determinand = c("CD", "PFOS")),
 #   tar_target(biota_timeseries, biota_timeseries_list[[determinand]]),
@@ -93,5 +93,5 @@ list(
 #     biota_assessment,           
 #     run_assessment_tar(         <===== modified version of 'biota_assessment' 
 #       biota_timeseries,
-#       info,                     <===== NEW
+#       info = info,                     <===== NEW
 #
