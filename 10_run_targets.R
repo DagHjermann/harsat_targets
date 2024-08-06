@@ -6,17 +6,24 @@
 
 
 library(targets)
-# library(harsat)
 
-source("R/functions.R")
-source("R/functions_utility.R")
+# library(harsat)            # only needed for testing, not for checking/running pipeline
+# source("R/functions.R")    # (same)
 
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# Create info file ----
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 if (FALSE){
   # 
   # Do only once
   # Using 'get_info_object', see R/functions  
   #
+  source("R/functions_utility.R")
+  
   info <- get_info_object(
     compartment = "biota",
     purpose = "OSPAR",
@@ -35,6 +42,11 @@ if (FALSE){
 # test <- read_stations2(infile = "harsat_data/ICES_DOME_STATIONS_20230829_NO.csv", info)
 # test <- read_contaminants2(infile = "harsat_data/raw_data_sample.csv", 
 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# Check/run pipeline ----  
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 
 # inspect pipeline
@@ -50,7 +62,30 @@ ggplot_assessment(x, plot_points = "all")
 ggplot_assessment(x, plot_points = "annual", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
 
-# test doing assessment of one part of data using intermediate results
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# test 'split_info_object' ----  
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+# split "info" object in a way so we reduce the amount of data in each object (which is copied N times)
+# But see bottom of _targets.R for better solution (using a common info file)  
+
+
+x <- tar_read(biota_timeseries_PFOS)
+str(x$info, 1)
+source("R/functions_utility.R")
+str(split_info_object(x$info, c("CD", "PFOS")), 1)
+str(split_info_object(x$info, c("CD", "PFOS"))[[1]], 1)
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# test 'run_assessment_tar'  ----
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
 obj_ts_list <- tar_read(biota_timeseries_list)
 names(obj_ts_list)
 obj_ts <- obj_ts_list[["CD"]]
@@ -66,20 +101,7 @@ obj_ass <- run_assessment_tar(
   extra_data = NULL,
   control = list(power = list(target_power = 80, target_trend = 10))
 )
-  
 
 
 
-#
-# info file
-#
 
-# test 'split_info_object'  
-# split "info" object in a way so we reduce the amount of data in each object (which is copied N times)
-# But see bottom of _targets.R for better solution (using a common info file)  
-
-
-x <- tar_read(biota_timeseries_PFOS)
-str(x$info, 1)
-str(split_info_object(x$info, c("CD", "PFOS")), 1)
-str(split_info_object(x$info, c("CD", "PFOS"))[[1]], 1)
