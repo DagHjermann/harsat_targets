@@ -86,13 +86,20 @@ str(split_info_object(x$info, c("CD", "PFOS"))[[1]], 1)
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
+# will be used for the common info file:
+obj_ts_all <- tar_read(biota_timeseries_all)
+str(obj_ts_all, 1)
+# data (time series object, without 'info' part, split for each parameter)
 obj_ts_list <- tar_read(biota_timeseries_list)
 names(obj_ts_list)
+# time series object for one parameter
 obj_ts <- obj_ts_list[["CD"]]
 # library(harsat)
+# test assessment function
 source("R/functions.R")
 obj_ass <- run_assessment_tar(
   obj_ts, # biota_timeseries
+  info = obj_ts_all$info,
   # subset = sel_series,
   AC = NULL,
   get_AC_fn = NULL,

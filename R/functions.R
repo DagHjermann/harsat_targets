@@ -399,6 +399,7 @@ tidy_data2 <- function(data){
 
 # Function for splitting a timeseries object into a list 
 # with one object per determinand
+# - 'info' is removed from the timeseries object, instead the assessment function will read from a common 'info' file 
 
 split_timeseries_object <- function(object){
   # split time series into a list
@@ -414,7 +415,7 @@ split_timeseries_object <- function(object){
     result[[i]] <- list(
       call = object$call,
       call.data = object$call.data,
-      info = object$info,
+      # info = object$info,
       data = data_list[[i]],
       # data = object$data,
       stations = object$stations,
@@ -445,16 +446,23 @@ if (FALSE){
   )
 }
 
+
+
+
+
 #
 # run_assessment_tar
-# - a copy of run_assessment() from harsat
-#
+# - a copy of run_assessment() from harsat  
+# - except
+#     - uses a common 'info' file ('info' is given as an argument)  
+#     - triple colons added in order to access no-exported functions run_control_default, run_control_modify, assessment_engine
 
-run_assessment_tar <- function (ctsm_ob, subset = NULL, AC = NULL, get_AC_fn = NULL, 
+run_assessment_tar <- function (ctsm_ob, info, subset = NULL, AC = NULL, get_AC_fn = NULL, 
           recent_trend = 20L, parallel = FALSE, extra_data = NULL, 
           control = list(), ...) 
 {
   ctsm_ob$call <- match.call()
+  ctsm_ob$info <- info
   ctsm_ob$info$recent.trend <- recent_trend
   ctsm_ob$info$AC <- AC
   ctsm_ob$info$get_AC_fn <- get_AC_fn
