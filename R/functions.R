@@ -473,8 +473,8 @@ run_assessment_tar <- function (ctsm_ob, subset = NULL, AC = NULL, get_AC_fn = N
     }
   }
   ctsm_ob$info$extra_data <- extra_data
-  cntrl <- run_control_default()
-  cntrl <- run_control_modify(cntrl, control)
+  cntrl <- harsat:::run_control_default()
+  cntrl <- harsat:::run_control_modify(cntrl, control)
   if (any(names(cntrl) %in% names(ctsm_ob$info))) {
     id <- names(cntrl)
     id <- id[id %in% names(ctsm_ob$info)]
@@ -493,7 +493,7 @@ run_assessment_tar <- function (ctsm_ob, subset = NULL, AC = NULL, get_AC_fn = N
     ok <- eval(substitute(subset), timeSeries, parent.frame())
     series_id <- timeSeries[ok, "series"]
   }
-  out <- assessment_engine(ctsm_ob, series_id, parallel = parallel, 
+  out <- harsat:::assessment_engine(ctsm_ob, series_id, parallel = parallel, 
                            ...)
   ctsm_ob$assessment[names(out)] <- out
   ctsm_ob
