@@ -26,11 +26,11 @@ list(
       filename_stations = file_stations,
       filename_contaminants = file_contaminants
       )),
-  tar_target(biota_data_tidy1, tidy_data(biota_data)),
+  tar_target(biota_data_tidy1, tidy_data_tar(biota_data)),
   tar_target(biota_data_tidy2, tidy_data2(biota_data_tidy1)),
   tar_target(
     biota_timeseries_all, 
-    create_timeseries(
+    create_timeseries_tar(
       biota_data_tidy2,
       determinands = ctsm_get_determinands(biota_data_tidy2$info),
       determinands.control = NULL,

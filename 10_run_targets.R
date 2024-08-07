@@ -59,6 +59,7 @@ if (FALSE){
 # inspect pipeline
 
 tar_manifest()
+tar_glimpse()
 tar_visnetwork()
 tar_make()
 
@@ -73,6 +74,10 @@ head(tar_read(biota_data_tidy2)$data, 2)
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
+#
+# test some plots
+#
+str(tar_read(biota_assess_data_CD), 1)
 str(tar_read(biota_assess_data_PFOS), 1)
 x <- tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]]
 library(ggplot2)
@@ -82,6 +87,27 @@ ggplot_assessment(x, plot_points = "all")
 ggplot_assessment(x, plot_points = "annual", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
+
+#
+# plot all 
+#
+plots <- list()
+i <- 1
+assessdata_list <- tar_read(biota_assess_data_CD)
+for (assessdata in assessdata_list){
+  x2 <- ggplot_assessment(assessdata)
+  plots[[i]] <- x2
+  i <- i + 1
+}
+assessdata_list <- tar_read(biota_assess_data_PFOS)
+for (assessdata in assessdata_list){
+  x2 <- ggplot_assessment(assessdata)
+  plots[[i]] <- x2
+  i <- i + 1
+}
+str(plots, 1)
+cowplot::plot_grid(plotlist = plots)
+
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
