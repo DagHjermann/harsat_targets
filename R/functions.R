@@ -435,7 +435,7 @@ tidy_contaminants_tar <- function (data, info) {
     message_txt <- paste0("years greater than ", info$max_year, 
                           " will be excluded; to change this use", "\n   the max_year argument of ctsm_read_data")
     not_ok <- data$year > info$max_year
-    data <- ctsm_check(data, not_ok, action = "delete", 
+    data <- harsat:::ctsm_check(data, not_ok, action = "delete", 
                        message = message_txt, file_name = "data_too_recent", 
                        info = info)
   }
@@ -503,9 +503,9 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
   data <- ctsm.obj$data
   rm(ctsm.obj)
   is.recent <- function(year) year %in% info$recent_years
-  oddity_path <- initialise_oddities(info$oddity_dir, info$compartment)
-  ctsm_check_stations(station_dictionary)
-  wk <- ctsm_check_determinands(info, data, determinands, determinands.control)
+  oddity_path <- harsat:::initialise_oddities(info$oddity_dir, info$compartment)
+  harsat:::ctsm_check_stations(station_dictionary)
+  wk <- harsat:::ctsm_check_determinands(info, data, determinands, determinands.control)
   data <- wk$data
   determinands <- wk$determinands
   determinands.control <- wk$control
@@ -521,7 +521,7 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
                            by = "station_code")
   data <- dplyr::relocate(data, dplyr::all_of(var_id))
   ok <- data$station_code %in% station_dictionary$station_code
-  data <- ctsm_check(data, !ok, action = "delete", message = "Stations in data not in station dictionary", 
+  data <- harsat:::ctsm_check(data, !ok, action = "delete", message = "Stations in data not in station dictionary", 
                      file_name = "unidentified_stations", info = info)
   if (info$compartment == "biota") {
     data$species <- ifelse(data$species %in% row.names(info$species), 
@@ -574,16 +574,16 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
   wk <- c("species_group", "sex", "no_individual", "matrix", 
           "basis", "unit", "method_analysis", "value")
   for (var_id in wk) {
-    data <- ctsm_check_variable(data, var_id, info)
+    data <- harsat:::ctsm_check_variable(data, var_id, info)
   }
   if (info$compartment == "sediment") {
-    data$digestion <- ctsm_get_digestion(data, info)
+    data$digestion <- harsat:::ctsm_get_digestion(data, info)
   }
-  data <- ctsm_check(data, paste(sample, determinand, matrix), 
+  data <- harsat:::ctsm_check(data, paste(sample, determinand, matrix), 
                      action = "delete.dups", message = "Replicate measurements, only first retained", 
                      file_name = "replicate_measurements", info = info)
-  data <- check_censoring(data, info, print_code_warnings)
-  data <- check_uncertainty(data, info, type = "reported")
+  data <- harsat:::check_censoring(data, info, print_code_warnings)
+  data <- harsat:::check_uncertainty(data, info, type = "reported")
   data <- dplyr::mutate(data, uncertainty = dplyr::case_when(.data$unit_uncertainty %in% 
                                                                "U2" ~ .data$uncertainty/2, .data$unit_uncertainty %in% 
                                                                "%" ~ .data$value * .data$uncertainty/100, .default = .data$uncertainty), 
@@ -601,7 +601,7 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
   }
   id <- c(determinands, ctsm_get_auxiliary(determinands, info))
   data <- dplyr::filter(data, .data$determinand %in% id)
-  data <- check_subseries(data, info)
+  data <- harsat:::check_subseries(data, info)
   rownames(data) <- NULL
   cat("\nCreating time series data\n")
   data$new.unit <- ctsm_get_info(info$determinand, data$determinand, 
@@ -611,28 +611,28 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
           "limit_quantification")
   data[id] <- lapply(data[id], convert_units, from = data$unit, 
                      to = data$new.unit)
-  data <- ctsm_merge_auxiliary(data, info)
+  data <- harsat:::ctsm_merge_auxiliary(data, info)
   if (info$compartment == "biota") {
-    data <- ctsm.imposex.check.femalepop(data, info)
+    data <- harsat:::ctsm.imposex.check.femalepop(data, info)
   }
-  data <- ctsm_convert_to_target_basis(data, info, get_basis)
+  data <- harsat:::ctsm_convert_to_target_basis(data, info, get_basis)
   if (return_early) {
     out <- c(out, output_timeseries(data, station_dictionary, 
                                     info, extra = "alabo"))
     return(out)
   }
-  data$uncertainty <- ctsm_estimate_uncertainty(data, "concentration", 
+  data$uncertainty <- harsat:::ctsm_estimate_uncertainty(data, "concentration", 
                                                 info)
   if (info$compartment == "sediment") {
     for (norm_id in c("AL", "LI", "CORG", "LOIGN")) {
       if (norm_id %in% names(data)) {
         norm_uncrt <- paste0(norm_id, ".uncertainty")
-        data[[norm_uncrt]] <- ctsm_estimate_uncertainty(data, 
+        data[[norm_uncrt]] <- harsat:::ctsm_estimate_uncertainty(data, 
                                                         norm_id, info)
       }
     }
   }
-  data <- ctsm_check(data, distribution %in% c("normal", "lognormal") & 
+  data <- harsat:::ctsm_check(data, distribution %in% c("normal", "lognormal") & 
                        !is.na(concentration) & is.na(uncertainty), action = "delete", 
                      message = "Missing uncertainties which cannot be imputed", 
                      file_name = "missing_uncertainties", info = info)
@@ -658,7 +658,7 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
   else if (is.function(normalise)) {
     data <- normalise(data, station_dictionary, info, normalise.control)
   }
-  data <- check_uncertainty(data, info, type = "calculated")
+  data <- harsat:::check_uncertainty(data, info, type = "calculated")
   notok <- data$distribution %in% c("normal", "lognormal") & 
     !is.na(data$concentration) & is.na(data$uncertainty)
   if (any(notok)) {
@@ -731,7 +731,7 @@ output_timeseries_tar <- function (data, station_dictionary, info, extra = NULL)
   data$new.basis <- data$new.unit <- NULL
   timeSeries <- droplevels(dplyr::distinct(timeSeries))
   timeSeries <- tibble::column_to_rownames(timeSeries, "seriesID")
-  data <- ctsm_check(data, paste(seriesID, sample), action = "delete.dups", 
+  data <- harsat:::ctsm_check(data, paste(seriesID, sample), action = "delete.dups", 
                      message = "Measurements still replicated, only first retained", 
                      file_name = "replicate_measurements_extra", info = info)
   is_recent_data <- (data$year %in% info$recent_years) & !is.na(data$concentration)
