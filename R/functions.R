@@ -389,7 +389,7 @@ read_contaminants_tar <- function (infile, info){
 }
 
 # tidy_data_tar - 'targets' version of 'tidy_data' in the harsat package
-# copy of the original function
+# copy of the original function, except that 'tidy_contaminants' is replaced by 'tidy_contaminants_tar'  
 
 tidy_data_tar <- function (ctsm_obj) {
   info <- ctsm_obj$info
@@ -420,14 +420,14 @@ tidy_data_tar <- function (ctsm_obj) {
     }
   }
   stations <- tidy_stations(stations, info)
-  data <- tidy_contaminants(data, info)
+  data <- tidy_contaminants_tar(data, info)
   ctsm_obj$stations <- stations
   ctsm_obj$data <- data
   ctsm_obj
 }
 
 # tidy_contaminants_tar - 'targets' version of 'tidy_data' in the harsat package
-# copy of the original function
+# copy of the original function, except that "targets_group" is added in output
 
 tidy_contaminants_tar <- function (data, info) {
   cat("\nCleaning contaminant and biological effects data\n")
@@ -455,7 +455,7 @@ tidy_contaminants_tar <- function (data, info) {
               "matrix", "basis", "filtration", "method_analysis", 
               "method_extraction", "method_pretreatment", "unit", 
               "value", "censoring", "limit_detection", "limit_quantification", 
-              "uncertainty", "unit_uncertainty", "alabo", "qalink")
+              "uncertainty", "unit_uncertainty", "alabo", "qalink", "targets_group")
   data <- data[intersect(var_id, names(data))]
   data
 }
