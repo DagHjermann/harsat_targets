@@ -57,22 +57,24 @@ if (FALSE){
 
 
 # inspect pipeline
-
 tar_manifest()
 tar_glimpse()
 tar_visnetwork()
+
+# update results (skip targets not needing to be updated)
 tar_make()
 
-head(tar_read(biota_data)$data, 2)
-str(tar_read(biota_data_tidy1), 1)
-head(tar_read(biota_data_tidy1)$data, 2)
-head(tar_read(biota_data_tidy2)$data, 2)
+# summarize results of updating 
+tar_progress()
+tar_progress_summary()
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 #
 # Test results of pipeline using using 'ggplot_assessment' ----  
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+str(tar_read(biota_assess_data_CD), 1)
 
 #
 # test some plots
@@ -89,7 +91,7 @@ ggplot_assessment(x, plot_points = "all", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
 
 #
-# plot all 
+# plot all, version 1 
 #
 plots <- list()
 i <- 1
@@ -105,7 +107,45 @@ for (assessdata in assessdata_list){
   plots[[i]] <- x2
   i <- i + 1
 }
-str(plots, 1)
+# str(plots, 1)
+# Plot all created plots in a grid
+cowplot::plot_grid(plotlist = plots)
+
+
+#
+# plot all, version 2 
+# - makes list, but still needs to hard-code each branch result in the code
+#
+assessdata_list <- c(
+  tar_read(biota_assess_data_CD), 
+  tar_read(biota_assess_data_PFOS)
+)
+str(assessdata_list, 1)
+# Create all plots and plot them in a grid
+plots <- lapply(assessdata_list, ggplot_assessment)
+cowplot::plot_grid(plotlist = plots)
+
+#
+# plot all, version 3 
+# - makes list, no need for hard-coding each branch result
+#
+
+
+# Load all biota assessment data, as separate objects
+tar_load(starts_with("biota_assess_data"))
+# Get their object names
+object_names <- grep("^biota_assess_data", ls(), value = TRUE)
+# Combine objects to a list (a list of lists, actually)
+object_list_unflattened <- lapply(object_names, get)
+# Remove separate objects
+rm(list = object_names)
+# ls()
+# str(object_list_unflattened, 1)
+# Flatten the list of lists, to just a list  
+object_list <- unlist(object_list_unflattened, recursive = FALSE)
+str(object_list, 1)
+# Create all plots and plot them in a grid
+plots <- lapply(object_list, ggplot_assessment)
 cowplot::plot_grid(plotlist = plots)
 
 
