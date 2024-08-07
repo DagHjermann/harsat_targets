@@ -750,18 +750,37 @@ output_timeseries_tar <- function (data, station_dictionary, info, extra = NULL)
 
 
 # Function for splitting a timeseries object into a list 
-# with one object per determinand
+# with one object for eacgh value of 'targets_group'
+# - note that the group column *may* be named something different, but 'targets_group' is used in the
+#   hard-coded output from 'tidy_data_tar'
 # - 'info' is removed from the timeseries object, instead the assessment function will read from a common 'info' file 
 
-split_timeseries_object <- function(object){
-  # split time series into a list
-  timeSeries_list <- split(object$timeSeries, object$timeSeries$determinand)
-  determs <- names(timeSeries_list)
+split_timeseries_object <- function(object, groupcolumn = "targets_group"){
+  tar_group_data <- object$data[[groupcolumn]]
+  tar_groups <- unique(tar_group_data)
   # split data into a list
-  data_list <- lapply(determs, function(determ) { subset(object$data, determinand %in% determ) })
-  # define result as a list with one element per determinand
-  result <- vector(mode = "list", length = length(determs))
-  names(result) <- determs
+  data_list <- lapply(tar_groups, function(tar_group) { object$data[tar_group_data %in% tar_group,] })
+  names(data_list) <- tar_groups  
+  # split time series into a list
+  timeSeries_list <- vector("list", length = length(data_list))
+  for (i in 1:length(data_list)){
+    # initialize 'sel' vector to use for selecting rows in the timeSeries_list
+    sel <- rep(TRUE, nrow(object$timeSeries))
+    # columns <- names(object$timeSeries)
+    columns <- c("station_code", "determinand", "species", "matrix", "subseries", "sex")
+    # go through each column to modify 'sel' so it fit's what's in the data 
+    for (col in columns){
+      group_values <- unique(data_list[[i]][[col]])
+      if (sum(!is.na(group_values)) > 0){
+        sel <- sel & object$timeSeries[[col]] %in% group_values
+      }
+    }
+    timeSeries_list[[i]] <- object$timeSeries[sel,]
+  }
+  names(timeSeries_list) <- tar_groups  
+  # define result as a list with one element per group
+  result <- vector(mode = "list", length = length(tar_groups))
+  names(result) <- tar_groups
   # define each list item
   for (i in seq_along(result)){
     result[[i]] <- list(
@@ -776,6 +795,7 @@ split_timeseries_object <- function(object){
   }
   result
 }
+
 
 if (FALSE){
   # for test
