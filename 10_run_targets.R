@@ -62,12 +62,18 @@ tar_manifest()
 tar_visnetwork()
 tar_make()
 
+head(tar_read(biota_data)$data, 2)
+str(tar_read(biota_data_tidy1), 1)
+head(tar_read(biota_data_tidy1)$data, 2)
+head(tar_read(biota_data_tidy2)$data, 2)
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 #
 # Test results of pipeline using using 'ggplot_assessment' ----  
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
+str(tar_read(biota_assess_data_PFOS), 1)
 x <- tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]]
 library(ggplot2)
 source("R/functions_utility.R")
@@ -120,7 +126,55 @@ str(biota_data$data)
 # by adding the new column, the data file got 2 new columns:
 # 'x' (just being row number) and 'targets_group'
 
+# library(harsat)
+# debugonce(tidy_data)
+biota_data_tidy1 <- tidy_data_tar(biota_data)
+biota_data_tidy2 <- tidy_data2(biota_data_tidy1)
+str(biota_data_tidy2$data)
 
+# debugonce(create_timeseries)
+biota_timeseries_all <- create_timeseries_tar(
+  biota_data_tidy2,
+  determinands = ctsm_get_determinands(biota_data_tidy2$info),
+  determinands.control = NULL,
+  oddity_path = oddities.dir,   # this doesn't seem to be respected, files are written to oddities/biota
+  return_early = FALSE,
+  print_code_warnings = FALSE,
+  get_basis = get_basis_most_common,
+  normalise = FALSE,
+  normalise.control = list()
+)
+
+str(biota_timeseries_all, 1)
+str(biota_timeseries_all$data, 1)
+biota_timeseries_list <- split_timeseries_object(biota_timeseries_all)
+
+# time series object for one parameter
+obj_ts <- biota_timeseries_list[["CD"]]
+# library(harsat)
+
+# test assessment function
+source("R/functions.R")
+obj_ass <- run_assessment_tar(
+  biota_timeseries_list[["CD"]], # biota_timeseries
+  info = biota_timeseries_all$info,
+  # subset = sel_series,
+  AC = NULL,
+  get_AC_fn = NULL,
+  recent_trend = 20,
+  parallel = FALSE, 
+  extra_data = NULL,
+  control = list(power = list(target_power = 80, target_trend = 10))
+)
+
+# get assessment data
+data_ass <- get_assessment_data(obj_ass)
+
+# check assessment data
+str(data_ass, 1)
+library(ggplot2)
+source("R/functions_utility.R")
+ggplot_assessment(data_ass[[1]])
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 #
@@ -129,14 +183,14 @@ str(biota_data$data)
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 # split "info" object in a way so we reduce the amount of data in each object (which is copied N times)
-# But see bottom of _targets.R for better solution (using a common info file)  
-
+# We end up not using this approach, see bottom of _targets.R for better solution (using a common info file)  
 
 x <- tar_read(biota_timeseries_PFOS)
 str(x$info, 1)
 source("R/functions_utility.R")
 str(split_info_object(x$info, c("CD", "PFOS")), 1)
 str(split_info_object(x$info, c("CD", "PFOS"))[[1]], 1)
+
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
