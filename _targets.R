@@ -95,3 +95,17 @@ list(
 #       biota_timeseries,
 #       info = info,                     <===== NEW
 #
+#
+# New possible improvement:
+# We now assume that the branching pattern is given as an extra column in the data, 'targets_group'. 
+# In order for the pipeline to preserve this column, we needed to make new versions of the following 'harsat' functions:
+#   create_timeseries (-> create_timeseries_tar)
+#   output_timeseries (-> output_timeseries_tar - internal function used by create_timeseries)
+#   tidy_data (-> tidy_data_tar)
+#   tidy_contaminants (-> tidy_contaminants_tar - internal function used by tidy_data)
+# This works OK. BUT this results in a potentially quite heavy maintenance burden: each time one of these functions are changed, we need to 
+#   make new versions of the "_tar" versions of them manually (change the code).
+# Therefore, one idea could be to change the entire pipeline:
+#   - the user mus make a "grouping file" with the 4 columns "determinand", "station", "basis", "targets_group"
+#   - this is not used until "split_timeseries_object"
+#   - therefore, we can use the original harsat versions of the functions mentioned above (create_timeseries etc.)
