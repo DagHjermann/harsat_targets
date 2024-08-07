@@ -395,7 +395,7 @@ tidy_data_tar <- function (ctsm_obj) {
   info <- ctsm_obj$info
   data <- ctsm_obj$data
   stations <- ctsm_obj$stations
-  initialise_oddities(info$oddity_dir, info$compartment)
+  harsat:::initialise_oddities(info$oddity_dir, info$compartment)
   if (info$data_format %in% "ICES") {
     ok <- data$retain
     if (!all(ok)) {
@@ -419,7 +419,7 @@ tidy_data_tar <- function (ctsm_obj) {
       stations <- stations[ok, ]
     }
   }
-  stations <- tidy_stations(stations, info)
+  stations <- harsat:::tidy_stations(stations, info)
   data <- tidy_contaminants_tar(data, info)
   ctsm_obj$stations <- stations
   ctsm_obj$data <- data
