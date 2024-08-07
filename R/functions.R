@@ -388,6 +388,80 @@ read_contaminants_tar <- function (infile, info){
   data
 }
 
+# tidy_data_tar - 'targets' version of 'tidy_data' in the harsat package
+# copy of the original function
+
+tidy_data_tar <- function (ctsm_obj) {
+  info <- ctsm_obj$info
+  data <- ctsm_obj$data
+  stations <- ctsm_obj$stations
+  initialise_oddities(info$oddity_dir, info$compartment)
+  if (info$data_format %in% "ICES") {
+    ok <- data$retain
+    if (!all(ok)) {
+      cat("\nDropping", sum(!ok), "records from data flagged for deletion. Possible reasons are:\n", 
+          "- vflag = suspect\n", switch(info$compartment, 
+                                        biota = "- species missing\n", sediment = paste("- upper depth > 0m\n", 
+                                                                                        "- unusual matrix\n"), water = paste("- upper depth >5.5m\n", 
+                                                                                                                             "- filtration missing\n", "- matrix = 'SPM'\n")))
+      data <- data[ok, ]
+    }
+  }
+  if (info$data_format %in% c("ICES", "external")) {
+    ok <- !is.na(data$station_code)
+    if (!all(ok)) {
+      cat("\nDropping", sum(!ok), "records from data that have no valid station code\n")
+      data <- data[ok, ]
+    }
+    ok <- stations$station_code %in% data$station_code
+    if (!all(ok)) {
+      cat("\nDropping", sum(!ok), "stations that are not associated with any data\n")
+      stations <- stations[ok, ]
+    }
+  }
+  stations <- tidy_stations(stations, info)
+  data <- tidy_contaminants(data, info)
+  ctsm_obj$stations <- stations
+  ctsm_obj$data <- data
+  ctsm_obj
+}
+
+# tidy_contaminants_tar - 'targets' version of 'tidy_data' in the harsat package
+# copy of the original function
+
+tidy_contaminants_tar <- function (data, info) {
+  cat("\nCleaning contaminant and biological effects data\n")
+  if (any(data$year > info$max_year)) {
+    message_txt <- paste0("years greater than ", info$max_year, 
+                          " will be excluded; to change this use", "\n   the max_year argument of ctsm_read_data")
+    not_ok <- data$year > info$max_year
+    data <- ctsm_check(data, not_ok, action = "delete", 
+                       message = message_txt, file_name = "data_too_recent", 
+                       info = info)
+  }
+  if (!any(data$year %in% info$recent_years)) {
+    stop("no data in the period ", min(info$recent_years), 
+         " to ", max(info$recent_years), " inclusive; nothing to assess!\n", 
+         "Consider changing the max_year argument or the reporting_window control\n", 
+         "option in read_data.", call. = FALSE)
+  }
+  if (info$data_format == "external") {
+    data$replicate <- seq(from = 1, to = nrow(data), by = 1)
+  }
+  data$sample <- as.character(data$sample)
+  var_id <- c("station_code", "sample_latitude", "sample_longitude", 
+              "year", "date", "time", "depth", "species", "sex", "n_individual", 
+              "subseries", "sample", "replicate", "determinand", "pargroup", 
+              "matrix", "basis", "filtration", "method_analysis", 
+              "method_extraction", "method_pretreatment", "unit", 
+              "value", "censoring", "limit_detection", "limit_quantification", 
+              "uncertainty", "unit_uncertainty", "alabo", "qalink")
+  data <- data[intersect(var_id, names(data))]
+  data
+}
+
+
+
 tidy_data2 <- function(data){
   if ("country" %in% names(data$data))
     data$data$country <- NULL
