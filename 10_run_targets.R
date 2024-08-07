@@ -4,6 +4,13 @@
 # - input_data = full contaminant data  
 # - harsat_data = sample contaminant data, station data (with "NO" in filename), info file
 
+# updating the 'harsat' package:
+# - In RStudio lower right window, choose "Files" and go to seksjon 212/HARSAT  
+# - Choose "More" > "Open terminal here"   
+# - In RStudio lower left window, choose "Terminal" and write "git pull origin develop"
+# - restart R
+# - install the new package in the R console, using devtools::install("../HARSAT")  
+#   (might also need to update dependency packages)
 
 library(targets)
 
@@ -63,11 +70,56 @@ tar_make()
 
 x <- tar_read(biota_assess_data_PFOS)[["4994 PFOS Gadus morhua LI NA"]]
 library(ggplot2)
+source("R/functions_utility.R")
 ggplot_assessment(x)
 ggplot_assessment(x, plot_points = "all")
 ggplot_assessment(x, plot_points = "annual", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE)
 ggplot_assessment(x, plot_points = "all", logscale = FALSE, ylim = c(0,17))
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# add 'targets_group' column and test 'read_data_tar' ----  
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+if (FALSE){
+  # do only once!
+  # back up of contaminants file
+  file.copy("harsat_data/raw_data_sample.csv", "harsat_data/raw_data_sample_backup.csv")
+}
+
+if (FALSE){
+  # do only once!
+  # add 'targets_group' - will be used to split the targets pipeline into groups
+  f1 <- read.csv("harsat_data/raw_data_sample.csv")
+  f2 <- f1 %>% 
+    mutate(targets_group = determinand)
+  write.csv(f2, "harsat_data/raw_data_sample.csv")
+}
+
+# test: run the stuff below
+file_info <- tar_read(file_info)
+file_stations <- tar_read(file_stations)
+file_contaminants <- tar_read(file_contaminants)
+# tar_target(file_info, "raw_data_sample.csv", format = "file"),
+biota_data <- read_data_tar(
+    compartment = "biota",
+    purpose = "OSPAR",
+    contaminants = file,   
+    data_dir = file.path("harsat_data"),
+    data_format = "external",
+    info_dir = file.path("information", "OSPAR_2022"),
+    filename_info = file_info,
+    filename_stations = file_stations,
+    filename_contaminants = file_contaminants
+  )
+
+str(biota_data$data)
+# by adding the new column, the data file got 2 new columns:
+# 'x' (just being row number) and 'targets_group'
+
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
