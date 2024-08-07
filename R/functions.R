@@ -471,6 +471,284 @@ tidy_data2 <- function(data){
 }
 
 
+# create_timeseries_tar
+# copy of create_timeseries from harsat package
+
+create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinands(ctsm.obj$info), 
+                                   determinands.control = NULL, oddity_path = "oddities", return_early = FALSE, 
+                                   print_code_warnings = FALSE, get_basis = get_basis_default, 
+                                   normalise = FALSE, normalise.control = list()) 
+{
+  .data <- .month <- .not_ok <- group <- value <- NULL
+  determinand <- uncertainty <- uncertainty_sd <- uncertainty_rel <- species_group <- NULL
+  determinands <- force(determinands)
+  if (!is.character(determinands)) {
+    stop("determinands must be a character string")
+  }
+  if (length(determinands) == 0L) {
+    stop("No determinands have been been selected for assessment:\n", 
+         "  please update the determinand reference table or supply the\n", 
+         "  determinands directly via the determinands argument.")
+  }
+  if (length(normalise) != 1L) {
+    stop("normalise should be a length 1 logical or a function")
+  }
+  if (!(is.logical(normalise) | is.function(normalise))) {
+    stop("normalise should be a length 1 logical or a function")
+  }
+  out <- list(call = match.call(), call.data = ctsm.obj$call, 
+              info = ctsm.obj$info)
+  info <- ctsm.obj$info
+  station_dictionary <- ctsm.obj$stations
+  data <- ctsm.obj$data
+  rm(ctsm.obj)
+  is.recent <- function(year) year %in% info$recent_years
+  oddity_path <- initialise_oddities(info$oddity_dir, info$compartment)
+  ctsm_check_stations(station_dictionary)
+  wk <- ctsm_check_determinands(info, data, determinands, determinands.control)
+  data <- wk$data
+  determinands <- wk$determinands
+  determinands.control <- wk$control
+  cat("\nCleaning data\n")
+  id <- c("station_code", "date", "filtration", "species", 
+          "sample", "matrix", "determinand")
+  id <- intersect(id, names(data))
+  ord <- do.call("order", data[id])
+  data <- data[ord, ]
+  var_id <- c("country", "station_code", "station_name")
+  var_id <- intersect(var_id, names(station_dictionary))
+  data <- dplyr::left_join(data, station_dictionary[var_id], 
+                           by = "station_code")
+  data <- dplyr::relocate(data, dplyr::all_of(var_id))
+  ok <- data$station_code %in% station_dictionary$station_code
+  data <- ctsm_check(data, !ok, action = "delete", message = "Stations in data not in station dictionary", 
+                     file_name = "unidentified_stations", info = info)
+  if (info$compartment == "biota") {
+    data$species <- ifelse(data$species %in% row.names(info$species), 
+                           info$species[data$species, "reference_species"], 
+                           data$species)
+  }
+  cat("   Dropping stations with no data between", min(info$recent_years), 
+      "and", max(info$recent_years), "\n")
+  id.names <- intersect(c("station_code", "species"), names(data))
+  id <- do.call("paste", data[id.names])
+  ok <- id %in% id[is.recent(data$year)]
+  data <- droplevels(data[ok, ])
+  if (info$compartment == "biota") {
+    ok <- ctsm_get_info(info$species, data$species, "assess")
+    if (!all(ok)) {
+      id <- data$species[!ok]
+      id <- unique(id)
+      id <- sort(id)
+      cat("   Dropping following species - see species reference table:\n", 
+          paste(id, collapse = ", "), "\n")
+    }
+    data <- data[ok, ]
+  }
+  if (info$region$all) {
+    data <- dplyr::left_join(data, station_dictionary[c("station_code", 
+                                                        info$region$id)], by = "station_code")
+    if (any(is.na(data[info$region.id]))) {
+      cat("   Dropping stations with missing region information in station dictionary\n")
+      data <- tidyr::drop_na(data, dplyr::all_of(info$region$id))
+    }
+    data <- data[setdiff(names(data), info$region$id)]
+  }
+  data$group <- ctsm_get_info(info$determinand, data$determinand, 
+                              "group", info$compartment, sep = "_")
+  if (info$compartment == "biota") {
+    data$species_group <- ctsm_get_info(info$species, data$species, 
+                                        "species_group")
+  }
+  if (!"pargroup" %in% names(data)) {
+    data$pargroup <- ctsm_get_info(info$determinand, data$determinand, 
+                                   "pargroup")
+  }
+  data$distribution <- ctsm_get_info(info$determinand, data$determinand, 
+                                     "distribution", na_action = "output_ok")
+  ok <- with(data, sample %in% sample[group != "Auxiliary"])
+  if (any(!ok)) {
+    cat("   Dropping samples with only auxiliary variables\n")
+    data <- data[ok, ]
+  }
+  wk <- c("species_group", "sex", "no_individual", "matrix", 
+          "basis", "unit", "method_analysis", "value")
+  for (var_id in wk) {
+    data <- ctsm_check_variable(data, var_id, info)
+  }
+  if (info$compartment == "sediment") {
+    data$digestion <- ctsm_get_digestion(data, info)
+  }
+  data <- ctsm_check(data, paste(sample, determinand, matrix), 
+                     action = "delete.dups", message = "Replicate measurements, only first retained", 
+                     file_name = "replicate_measurements", info = info)
+  data <- check_censoring(data, info, print_code_warnings)
+  data <- check_uncertainty(data, info, type = "reported")
+  data <- dplyr::mutate(data, uncertainty = dplyr::case_when(.data$unit_uncertainty %in% 
+                                                               "U2" ~ .data$uncertainty/2, .data$unit_uncertainty %in% 
+                                                               "%" ~ .data$value * .data$uncertainty/100, .default = .data$uncertainty), 
+                        unit_uncertainty = "SD")
+  for (i in names(determinands.control)) {
+    wk <- determinands.control[[i]]
+    linkFunction <- switch(wk$action, replace = determinand.link.replace, 
+                           sum = determinand.link.sum, bespoke = get(paste("determinand.link", 
+                                                                           i, sep = "."), mode = "function"))
+    args = list(data = data, info = info, keep = i, drop = wk$det)
+    if ("weights" %in% names(wk)) {
+      args = c(args, list(weights = wk$weights))
+    }
+    data <- do.call(linkFunction, args)
+  }
+  id <- c(determinands, ctsm_get_auxiliary(determinands, info))
+  data <- dplyr::filter(data, .data$determinand %in% id)
+  data <- check_subseries(data, info)
+  rownames(data) <- NULL
+  cat("\nCreating time series data\n")
+  data$new.unit <- ctsm_get_info(info$determinand, data$determinand, 
+                                 "unit", info$compartment, sep = "_")
+  data$concentration <- data$value
+  id <- c("concentration", "uncertainty", "limit_detection", 
+          "limit_quantification")
+  data[id] <- lapply(data[id], convert_units, from = data$unit, 
+                     to = data$new.unit)
+  data <- ctsm_merge_auxiliary(data, info)
+  if (info$compartment == "biota") {
+    data <- ctsm.imposex.check.femalepop(data, info)
+  }
+  data <- ctsm_convert_to_target_basis(data, info, get_basis)
+  if (return_early) {
+    out <- c(out, output_timeseries(data, station_dictionary, 
+                                    info, extra = "alabo"))
+    return(out)
+  }
+  data$uncertainty <- ctsm_estimate_uncertainty(data, "concentration", 
+                                                info)
+  if (info$compartment == "sediment") {
+    for (norm_id in c("AL", "LI", "CORG", "LOIGN")) {
+      if (norm_id %in% names(data)) {
+        norm_uncrt <- paste0(norm_id, ".uncertainty")
+        data[[norm_uncrt]] <- ctsm_estimate_uncertainty(data, 
+                                                        norm_id, info)
+      }
+    }
+  }
+  data <- ctsm_check(data, distribution %in% c("normal", "lognormal") & 
+                       !is.na(concentration) & is.na(uncertainty), action = "delete", 
+                     message = "Missing uncertainties which cannot be imputed", 
+                     file_name = "missing_uncertainties", info = info)
+  if (info$compartment == "biota" && !is.null(info$bivalve_spawning_season)) {
+    data <- dplyr::mutate(data, .month = months(as.Date(.data$date)), 
+                          .not_ok = species_group %in% c("Bivalve", "Gastropod") & 
+                            (is.na(.month) | .month %in% info$bivalve_spawning_season) & 
+                            !group %in% c("Effects", "Imposex", "Metabolites"))
+    if (any(data$.not_ok)) {
+      cat("   Dropping bivalve and gastropod contaminant data collected during the\n", 
+          "   spawning season, which is taken to be the following months:\n   ", 
+          paste(info$bivalve_spawning_season, collapse = ", "), 
+          "\n")
+      data <- dplyr::filter(data, !.not_ok)
+    }
+    data[c(".month", ".not_ok")] <- NULL
+  }
+  if (is.logical(normalise) && normalise) {
+    data <- switch(info$compartment, biota = stop("there is no default normalisation function for biota"), 
+                   sediment = stop("there is no default normalisation function for sediment"), 
+                   water = stop("there is no default normalisation function for water"))
+  }
+  else if (is.function(normalise)) {
+    data <- normalise(data, station_dictionary, info, normalise.control)
+  }
+  data <- check_uncertainty(data, info, type = "calculated")
+  notok <- data$distribution %in% c("normal", "lognormal") & 
+    !is.na(data$concentration) & is.na(data$uncertainty)
+  if (any(notok)) {
+    stop("uncertainties missing where they should be present: \n", 
+         "contact HARSAT development team")
+  }
+  cat("   Dropping groups of compounds / stations with no data between", 
+      min(info$recent_years), "and", max(info$recent_years), 
+      "\n")
+  id_names <- intersect(c("station_code", "filtration", "species", 
+                          "group"), names(data))
+  id <- do.call("paste", data[id_names])
+  ok <- id %in% id[is.recent(data$year) & !is.na(data$concentration)]
+  data <- data[ok, ]
+  out <- c(out, output_timeseries(data, station_dictionary, 
+                                  info))
+  out
+}
+
+# output_timeseries_tar
+# copy of output_timeseries from harsat package
+
+output_timeseries_tar <- function (data, station_dictionary, info, extra = NULL) {
+  .data <- .group <- seriesID <- NULL
+  id = c("station_code", "species", "filtration", "year", 
+         "sex", "sample", "group", "determinand")
+  data <- dplyr::arrange(data, dplyr::across(dplyr::any_of(id)))
+  id <- c("station_code", "sample_latitude", "sample_longitude", 
+          "species", "sex", "depth", "year", "date", "time", "sample", 
+          "matrix", "filtration", "subseries", "group", "determinand", 
+          "basis", "unit", "value", "method_analysis", "n_individual", 
+          "concOriginal", "censoringOriginal", "uncrtOriginal", 
+          "concentration", "new.basis", "new.unit", "censoring", 
+          "limit_detection", "limit_quantification", "uncertainty")
+  if (!is.null(extra)) {
+    id <- c(id, extra)
+  }
+  auxiliary <- ctsm_get_auxiliary(data$determinand, info)
+  auxiliary_id <- paste0(rep(auxiliary, each = 5), c("", ".censoring", 
+                                                     ".limit_detection", ".limit_quantification", ".uncertainty"))
+  id <- c(id, auxiliary_id)
+  data <- dplyr::select(data, dplyr::any_of(id))
+  row.names(data) <- NULL
+  data <- droplevels(data)
+  id <- c("station_code", "determinand")
+  if (info$compartment %in% c("biota")) {
+    id <- c(id, "species", "matrix", "subseries", "sex", 
+            "method_analysis")
+  }
+  if (info$compartment %in% "sediment") {
+    id <- c(id, "matrix", "subseries")
+  }
+  if (info$compartment %in% "water") {
+    id <- c(id, "filtration", "subseries")
+  }
+  timeSeries <- data[id]
+  if (info$compartment == "biota") {
+    timeSeries <- dplyr::mutate(timeSeries, sex = dplyr::if_else(.data$determinand %in% 
+                                                                   "EROD", .data$sex, NA_character_), .group = ctsm_get_info(info$determinand, 
+                                                                                                                             .data$determinand, "group", "biota", sep = "_"), 
+                                method_analysis = dplyr::if_else(.group %in% "Metabolites", 
+                                                                 .data$method_analysis, NA_character_), .group = NULL, 
+    )
+  }
+  timeSeries <- tidyr::unite(timeSeries, "seriesID", dplyr::all_of(names(timeSeries)), 
+                             sep = " ", remove = FALSE, na.rm = TRUE)
+  data <- cbind(seriesID = timeSeries$seriesID, data)
+  timeSeries$basis <- data$new.basis
+  timeSeries$unit <- data$new.unit
+  data$new.basis <- data$new.unit <- NULL
+  timeSeries <- droplevels(dplyr::distinct(timeSeries))
+  timeSeries <- tibble::column_to_rownames(timeSeries, "seriesID")
+  data <- ctsm_check(data, paste(seriesID, sample), action = "delete.dups", 
+                     message = "Measurements still replicated, only first retained", 
+                     file_name = "replicate_measurements_extra", info = info)
+  is_recent_data <- (data$year %in% info$recent_years) & !is.na(data$concentration)
+  id <- data$seriesID[is_recent_data]
+  id <- unique(id)
+  data <- data[data$seriesID %in% id, ]
+  data <- droplevels(data)
+  ok <- row.names(timeSeries) %in% id
+  timeSeries <- timeSeries[ok, ]
+  timeSeries <- droplevels(timeSeries)
+  ok <- station_dictionary$station_code %in% timeSeries$station_code
+  station_dictionary <- station_dictionary[ok, ]
+  row.names(station_dictionary) <- NULL
+  list(data = data, stations = station_dictionary, timeSeries = timeSeries)
+}
+
+
 # Function for splitting a timeseries object into a list 
 # with one object per determinand
 # - 'info' is removed from the timeseries object, instead the assessment function will read from a common 'info' file 
