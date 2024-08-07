@@ -673,7 +673,7 @@ create_timeseries_tar <- function (ctsm.obj, determinands = ctsm_get_determinand
   id <- do.call("paste", data[id_names])
   ok <- id %in% id[is.recent(data$year) & !is.na(data$concentration)]
   data <- data[ok, ]
-  out <- c(out, output_timeseries(data, station_dictionary, 
+  out <- c(out, output_timeseries_tar(data, station_dictionary, 
                                   info))
   out
 }
@@ -692,7 +692,7 @@ output_timeseries_tar <- function (data, station_dictionary, info, extra = NULL)
           "basis", "unit", "value", "method_analysis", "n_individual", 
           "concOriginal", "censoringOriginal", "uncrtOriginal", 
           "concentration", "new.basis", "new.unit", "censoring", 
-          "limit_detection", "limit_quantification", "uncertainty")
+          "limit_detection", "limit_quantification", "uncertainty", "targets_group")
   if (!is.null(extra)) {
     id <- c(id, extra)
   }
