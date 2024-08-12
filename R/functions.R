@@ -755,7 +755,12 @@ output_timeseries_tar <- function (data, station_dictionary, info, extra = NULL)
 #   hard-coded output from 'tidy_data_tar'
 # - 'info' is removed from the timeseries object, instead the assessment function will read from a common 'info' file 
 
-split_timeseries_object <- function(object, groupcolumn = "targets_group"){
+split_timeseries_object <- function(object, df_branching, groupcolumn = "branch"){
+  object$data <- base::merge(
+    object$data, 
+    df_branching, 
+    by = c("determinand", "station_code", "species", "matrix", "subseries", "basis"),
+    all.x = TRUE, all.y = FALSE)
   tar_group_data <- object$data[[groupcolumn]]
   tar_groups <- unique(tar_group_data)
   # split data into a list

@@ -242,6 +242,7 @@ library(ggplot2)
 source("R/functions_utility.R")
 ggplot_assessment(data_ass[[1]])
 
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 #
 # test 'split_info_object' ----  
@@ -287,6 +288,53 @@ obj_ass <- run_assessment_tar(
   extra_data = NULL,
   control = list(power = list(target_power = 80, target_trend = 10))
 )
+
+
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# Branching approach 2: create 'branching_groups' data ----  
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+
+biota_data <- tar_read(biota_data)
+
+if (FALSE){
+
+  # create 'branching_groups' data
+  # 'branch' column will define the branching
+  
+  
+  branching_groups <- biota_data$data |>
+    # note: not including sex
+    dplyr::count(determinand, station_code, species, matrix, subseries, basis) %>%
+    # define 'branching_groups' for this test sample
+    mutate(
+      subseries = addNA(subseries),
+      branch = paste0(determinand, "_allstations")
+    )
+  # write to file:
+  readr::write_csv(branching_groups, "harsat_data/branching_groups.csv")
+}
+
+
+# inspect pipeline
+tar_manifest()
+tar_glimpse()
+tar_visnetwork()
+
+tar_make(branching_groups)
+tar_make(biota_timeseries_all)
+tar_make(biota_timeseries_list)
+tar_make()
+
+x <- tar_read(biota_timeseries_all)
+x2 <- tar_read(branching_groups)
+str(x$data)
+
+debugonce(split_timeseries_object)
+test <- split_timeseries_object(object = x, df_branching = x2)
+str(test, 1)                                    
 
 
 
