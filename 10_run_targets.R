@@ -163,6 +163,8 @@ cowplot::plot_grid(plotlist = plots)
 #
 # Branching approach 1: add 'targets_group' column and test 'read_data_tar' ----  
 #
+# This won't work anymore due to changes in 'split_info_object'  
+#
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
 if (FALSE){
@@ -332,18 +334,14 @@ tar_manifest()
 tar_glimpse()
 tar_visnetwork()
 
-tar_make(branching_groups)
-tar_make(biota_timeseries_all)
-tar_make(biota_timeseries_list)
 tar_make()
 
-x <- tar_read(biota_timeseries_all)
-x2 <- tar_read(branching_groups)
-str(x$data)
-
-debugonce(split_timeseries_object)
-test <- split_timeseries_object(object = x, df_branching = x2)
-str(test, 1)                                    
+# For development of split_timeseries_object:
+#   tar_make(biota_timeseries_all)
+#   tar_make(branching_groups)
+#   x <- tar_read(biota_timeseries_all)
+#   x2 <- tar_read(branching_groups)
+#   test <- split_timeseries_object(object = x, df_branching = x2)
 
 
 

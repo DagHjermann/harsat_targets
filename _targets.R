@@ -11,6 +11,7 @@ tar_option_set(packages = c("harsat"))
 # Static branching, using 'targets_group' column in 'raw_data_sample.csv' 
 #   which then is preserved until branching actually is done, needing special functions 
 #   'create_timeseries_tar', 'output_timeseries_tar', 'tidy_data_tar' and 'tidy_contaminants_tar'
+# This won't work anymore due to changes in 'split_info_object'  
 
 # list(
 #   tar_target(file_info, "harsat_data/info.rds", format = "file"),
@@ -165,16 +166,16 @@ list(
 #       info = info,                     <===== NEW
 #
 #
-# New possible improvement:
-# We now assume that the branching pattern is given as an extra column in the data, 'targets_group'. 
+# New improvement (branching approach 2):
+# Branching approach 1 assumed that the branching pattern is given as an extra column in the data, 'targets_group'. 
 # In order for the pipeline to preserve this column, we needed to make new versions of the following 'harsat' functions:
 #   create_timeseries (-> create_timeseries_tar)
 #   output_timeseries (-> output_timeseries_tar - internal function used by create_timeseries)
 #   tidy_data (-> tidy_data_tar)
 #   tidy_contaminants (-> tidy_contaminants_tar - internal function used by tidy_data)
-# This works OK. BUT this results in a potentially quite heavy maintenance burden: each time one of these functions are changed, we need to 
+# This worked OK. BUT resulted in a potentially quite heavy maintenance burden: each time one of these functions are changed, we need to 
 #   make new versions of the "_tar" versions of them manually (change the code).
-# Therefore, one idea could be to change the entire pipeline:
-#   - the user mus make a "grouping file" with the 4 columns "determinand", "station", "basis", "targets_group"
+# Therefore, we change dthe entire pipeline (branching approach 2:
+#   - the user mus make a "grouping file" with the column "branch"
 #   - this is not used until "split_timeseries_object"
 #   - therefore, we can use the original harsat versions of the functions mentioned above (create_timeseries etc.)
