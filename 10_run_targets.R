@@ -49,6 +49,7 @@ if (FALSE){
 # test <- read_stations2(infile = "harsat_data/ICES_DOME_STATIONS_20230829_NO.csv", info)
 # test <- read_contaminants2(infile = "harsat_data/raw_data_sample.csv", 
 
+
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 #
 # Check/run pipeline ----  
@@ -130,15 +131,15 @@ cowplot::plot_grid(plotlist = plots)
 # - makes list, no need for hard-coding each branch result
 #
 
-
+# Get list of objects
+df_targets_all <- tar_progress()
+target_names <- grep("biota_assess_data", df_targets_all$name, value = TRUE)
 # Load all biota assessment data, as separate objects
-tar_load(starts_with("biota_assess_data"))
-# Get their object names
-object_names <- grep("^biota_assess_data", ls(), value = TRUE)
+tar_load_raw(target_names)
 # Combine objects to a list (a list of lists, actually)
-object_list_unflattened <- lapply(object_names, get)
+object_list_unflattened <- lapply(target_names, get)
 # Remove separate objects
-rm(list = object_names)
+rm(list = target_names)
 # ls()
 # str(object_list_unflattened, 1)
 # Flatten the list of lists, to just a list  
@@ -149,10 +150,18 @@ plots <- lapply(object_list, ggplot_assessment)
 cowplot::plot_grid(plotlist = plots)
 
 
+#
+# plot all, version 4 
+# - as above, but combined to a function
+#
+assessment_data <- combine_assessment_data()
+plots <- lapply(assessment_data, ggplot_assessment)
+cowplot::plot_grid(plotlist = plots)
+
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 #
-# add 'targets_group' column and test 'read_data_tar' ----  
+# Branching approach 1: add 'targets_group' column and test 'read_data_tar' ----  
 #
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 

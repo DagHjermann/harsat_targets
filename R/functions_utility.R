@@ -245,5 +245,26 @@ split_info_object <- function(object, determs){
   result
 }
 
+#
+# Reads list of 'biota_assess_data' targets, combines them to a list of lists,
+#   and flattens them to a list
+#
+combine_assessment_data <- function(){
+  df_targets_all <- tar_progress()
+  target_names <- grep("biota_assess_data", df_targets_all$name, value = TRUE)
+  # Load all biota assessment data, as separate objects
+  tar_load_raw(target_names)
+  # Using get to access the given objects and combine them in a list
+  #    (a list of lists, actually)
+  # 'sys.nframe()' is there to look for objects in the current environment,
+  #   i.e. inside the function
+  object_list_unflattened <- lapply(target_names, get, envir = sys.nframe())
+  # Remove separate objects
+  # rm(list = target_names)
+  # Flatten the list of lists, to just a list  
+  object_list <- unlist(object_list_unflattened, recursive = FALSE)
+  object_list
+}
+
 
 
