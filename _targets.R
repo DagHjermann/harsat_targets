@@ -78,6 +78,7 @@ list(
   tar_target(file_info, "harsat_data/info.rds", format = "file"),
   tar_target(file_stations, "harsat_data/ICES_DOME_STATIONS_20230829_NO.csv", format = "file"),
   tar_target(file_contaminants, "harsat_data/raw_data_sample.csv", format = "file"),
+  tar_target(file_branching, "harsat_data/branching_groups.csv", format = "file"),
   # tar_target(file_info, "raw_data_sample.csv", format = "file"),
   tar_target(
     biota_data,
@@ -92,11 +93,11 @@ list(
       filename_stations = file_stations,
       filename_contaminants = file_contaminants
     )),
-  tar_target(biota_data_tidy1, tidy_data_tar(biota_data)),
-  tar_target(biota_data_tidy2, tidy_data2(biota_data_tidy1)),
+  tar_target(biota_data_tidy, tidy_data_tar(biota_data)),
+  tar_target(biota_data_tidy2, tidy_data2(biota_data_tidy)),
   tar_target(
     biota_timeseries_all, 
-    create_timeseries_tar(
+    create_timeseries(
       biota_data_tidy2,
       determinands = ctsm_get_determinands(biota_data_tidy2$info),
       determinands.control = NULL,
@@ -107,11 +108,12 @@ list(
       normalise = FALSE,
       normalise.control = list()
     )),
-  tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all)),
+  tar_target(branching_groups, read.csv(file_branching)),
+  tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all, branching_groups)),
   tar_target(info, biota_timeseries_all[["info"]]),
   tar_map(
-    list(determinand = c("CD", "PFOS")),
-    tar_target(biota_timeseries, biota_timeseries_list[[determinand]]),
+    list(branch = c("CD_allstations", "PFOS_allstations")),
+    tar_target(biota_timeseries, biota_timeseries_list[[branch]]),
     tar_target(
       biota_assessment,
       run_assessment_tar(
