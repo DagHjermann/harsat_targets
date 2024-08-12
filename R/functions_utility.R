@@ -177,7 +177,7 @@ ggplot_assessment <- function(assessment_data,
         data = assessment_data$assessment$pred, 
         aes(y = exp(fit)),
         color = trendcolor_line,
-        size = rel(trendwidth)) + 
+        linewidth = rel(trendwidth)) + 
       geom_point(
         aes(y = y, shape = LOQ),
         color = pointcolor) +
