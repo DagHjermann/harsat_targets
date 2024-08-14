@@ -756,11 +756,16 @@ output_timeseries_tar <- function (data, station_dictionary, info, extra = NULL)
 # - 'info' is removed from the timeseries object, instead the assessment function will read from a common 'info' file 
 
 split_timeseries_object <- function(object, df_branching, groupcolumn = "branch"){
+  # Add 'groupcolumn' (usually column named 'branch') to the data, based on the 'df_branching' table 
   object$data <- base::merge(
     object$data, 
     df_branching, 
     by = c("determinand", "station_code", "species", "matrix", "subseries", "basis"),
     all.x = TRUE, all.y = FALSE)
+  # Remove rows with missing values in 'groupcolumn' 
+  sel_missing <- is.na(object$data[[groupcolumn]]) 
+  object$data <- object$data[!sel_missing]
+  # Get groupings (tar_group_data) and unique values of groupings (tar_groups)
   tar_group_data <- object$data[[groupcolumn]]
   tar_groups <- unique(tar_group_data)
   # split data into a list
