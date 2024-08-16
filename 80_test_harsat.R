@@ -47,8 +47,8 @@ dat_orig_1 %>% filter(MYEAR == 2023) %>% xtabs(~STATION_CODE, .)
 # Data submitted to ICES  
 # - used to make 'lookup_statn', plus to check station names etc
 
+fn <- "../Milkys2_pc/Files_to_ICES/2022/Rdata/842_NIVA2022CF_08.rds"
 # run only once:
-# fn <- "../Milkys2_pc/Files_to_ICES/2022/Rdata/842_NIVA2022CF_08.rds"
 # fn2 <- "input_data/842_NIVA2022CF_08.rds"
 # file.copy(fn, fn2)
 

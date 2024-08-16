@@ -59,14 +59,29 @@ if (FALSE){
 
 # inspect pipeline
 tar_manifest()
+
+# Show network, but not status (up to date, outdated etc.)
 tar_glimpse()
+
+# Show status (up to date, outdated etc.)
 tar_visnetwork()
 
-# update results (skip targets not needing to be updated)
+# Alternative
+txt <- tar_mermaid()
+writeLines(txt, "clipboard")  # copies mermaid code
+# the past into e.g. https://mermaid.live/ 
+# Show outdated targets
+tar_outdated()   
+
+tar_validate()
+
+# run the pipeline  
+# targets that need to be updated, will be updated (this may take time!)
+# the rest of the targets will be skipped
 tar_make()
 
 # summarize results of updating 
-tar_progress()
+tar_progress()             # note: doesn't show which targets that are outdated
 tar_progress_summary()
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
@@ -154,6 +169,8 @@ cowplot::plot_grid(plotlist = plots)
 # plot all, version 4 
 # - as above, but combined to a function
 #
+source("R/functions_utility.R")
+library(ggplot2)
 assessment_data <- combine_assessment_data()
 plots <- lapply(assessment_data, ggplot_assessment)
 cowplot::plot_grid(plotlist = plots)
@@ -343,6 +360,113 @@ tar_make()
 #   x2 <- tar_read(branching_groups)
 #   test <- split_timeseries_object(object = x, df_branching = x2)
 
+if (FALSE){
+  x1 <- tar_read(file_info)
+  x2 <- tar_read(file_stations)
+  x3 <- tar_read(file_contaminants)
+  test <- read_data_tar(
+    compartment = "biota",
+    purpose = "OSPAR",
+    contaminants = file,   
+    data_dir = file.path("harsat_data"),
+    data_format = "external",
+    info_dir = file.path("information", "OSPAR_2022"),
+    filename_info = x1,
+    filename_stations = x2,
+    filename_contaminants = x3
+  )
+  
+}
 
 
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
+#
+# Solving errors - example ----
+#
+# How to solve an error when running tar_make()
+#
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-
 
+# 1. The error. After updating harsat, some targets were outdated
+# and we ran tar_make:
+
+tar_make()
+
+# Output:
+#
+# ✔ skipped target file_contaminants
+# ✔ skipped target file_info
+# ✔ skipped target file_stations
+# ✔ skipped target file_branching
+# ✔ skipped target biota_data
+# ✔ skipped target branching_groups
+# ✔ skipped target biota_data_tidy
+# ✔ skipped target biota_data_tidy2
+# ✔ skipped target biota_timeseries_all
+# ✔ skipped target info
+# ▶ dispatched target biota_timeseries_list
+# ✖ errored target biota_timeseries_list
+# ✖ errored pipeline [0.78 seconds]
+# Error:
+#   ! Error running targets::tar_make()
+# Error messages: targets::tar_meta(fields = error, complete_only = TRUE)
+# Debugging guide: https://books.ropensci.org/targets/debugging.html
+# How to ask for help: https://books.ropensci.org/targets/help.html
+# Last error message:
+#   undefined columns selected
+# Last error traceback:
+#   split_timeseries_object(biota_timeseries_all, branching_groups)
+# object$data[!sel_missing]
+# `[.data.frame`(object$data, !sel_missing)
+# stop("undefined columns selected")
+# .handleSimpleError(function (condition)  {     state$error <- build_mess...
+# h(simpleError(msg, call))
+
+# 2. Find the key parts in error message. These two parts tell us where in the 
+# pipeline the error happened:
+#
+# last thing dispatched: 'dispatched target biota_timeseries_list'
+# Last error traceback:
+#   split_timeseries_object(biota_timeseries_all, branching_groups)
+# So there was an error when running 'split_timeseries_object' 
+#
+# Also, we see that 'split_timeseries_object' returne the following error message:
+# Last error message:
+#   undefined columns selected
+
+# 3. Re-create the error using "ordinary R code", i.e. outside targets. 
+# In _targets.R, we see that the line with the error is:
+#   tar_target(biota_timeseries_list, split_timeseries_object(biota_timeseries_all, branching_groups)),
+# In usual R code, this is equivalent to
+#   biota_timeseries_list <- split_timeseries_object(biota_timeseries_all, branching_groups)
+# In order to run this line, we need the objects 'biota_timeseries_all' and 'branching_groups'
+# We get them like this:
+biota_timeseries_all <- tar_read(biota_timeseries_all)
+branching_groups <- tar_read(branching_groups)
+# We also need to load necessary packages and scripts (see top of the _targets.R code)
+library(harsat)
+source("R/functions.R")
+# Now we can test this:
+biota_timeseries_list <- split_timeseries_object(biota_timeseries_all, branching_groups)
+# Error in `[.data.frame`(object$data, !sel_missing) : 
+#   undefined columns selected
+# Thus, this recreated the error that we got when running tar_make(). We are then ready to 
+# actually find out what's wrong.
+
+# 4. Debugging (i.e. find out what's wrong)  
+# I usually use this command:
+debugonce(split_timeseries_object)
+# which puts 'split_timeseries_object' into debugging mode once. Debugging mode means that
+# when you run the function, you will  step through the function line by line. 
+# (You can also use 'debug(split_timeseries_object)' - then you have to use 
+# 'undebug(split_timeseries_object)' after debugging is finished.)
+biota_timeseries_list <- split_timeseries_object(biota_timeseries_all, branching_groups)
+# While debugging, you can
+#   - in the console, check the different objects in the function, e.g. 'str(object$data)' to see the 
+#   columns and the number of variables and rows
+#   - see the values of variables in the "Environment" pane of RStudio (top right),
+#   and click on data frames to view them in the top left pane
+#   - copy lines form the functions to the console and change them before you run them, to see 
+#   if you get different result
+#   - you will run through loops line by line N times - if the loop is tedious and uninteresting, 
+#   there is a button to skip through them (i.e. run the loop, but not line by line)
