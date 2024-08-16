@@ -94,7 +94,7 @@ list(
       filename_stations = file_stations,
       filename_contaminants = file_contaminants
     )),
-  tar_target(biota_data_tidy, tidy_data_tar(biota_data)),
+  tar_target(biota_data_tidy, tidy_data(biota_data)),
   tar_target(biota_data_tidy2, tidy_data2(biota_data_tidy)),
   tar_target(
     biota_timeseries_all, 
