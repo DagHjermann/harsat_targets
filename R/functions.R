@@ -764,7 +764,7 @@ split_timeseries_object <- function(object, df_branching, groupcolumn = "branch"
     all.x = TRUE, all.y = FALSE)
   # Remove rows with missing values in 'groupcolumn' 
   sel_missing <- is.na(object$data[[groupcolumn]]) 
-  object$data <- object$data[!sel_missing]
+  object$data <- object$data[!sel_missing,]
   # Get groupings (tar_group_data) and unique values of groupings (tar_groups)
   tar_group_data <- object$data[[groupcolumn]]
   tar_groups <- unique(tar_group_data)
